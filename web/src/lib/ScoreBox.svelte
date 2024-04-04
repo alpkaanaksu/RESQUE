@@ -1,0 +1,1 @@
+<div>Score box</div>

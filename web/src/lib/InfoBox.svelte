@@ -1,0 +1,1 @@
+<div>Info box</div>
