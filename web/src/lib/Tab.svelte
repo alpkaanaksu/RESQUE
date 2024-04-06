@@ -1,19 +1,31 @@
-<script>
-	export let title;
-	export let type;
-    export let selected;
+<script lang="ts">
+    import { getTypeName } from "../utils/helpers";
+    import { currentIndex } from "../stores";
 
-	const typeNames = {
-		pub: 'Publication',
-		software: 'Sofware Project',
-		data: 'Data Set'
-	};
+	export let title: string;
+	export let type: string;
+    export let selected: boolean;
+    export let index: number;
+
+    const displayType = getTypeName(type as "data" | "pub" | "software");
 </script>
 
-<div class={selected ? 'selected' : ''}>
-	<b>{typeNames[type]}</b>
+<div
+    class={selected ? 'selected' : ''}
+    on:click={() => $currentIndex = index}
+    on:keydown={(e) => {
+        if (e.key === 'Enter') {
+            $currentIndex = index;
+        }
+    }}
+    role="button"
+    tabindex="0"
+>
+    <b>{displayType}</b>
 	<br />
-	<span>{title}</span>
+    {#if title}
+	    <span>{title}</span>
+    {/if}
 </div>
 
 <style>

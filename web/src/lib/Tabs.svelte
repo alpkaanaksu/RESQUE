@@ -1,22 +1,60 @@
-<script>
+<script lang="ts">
 	import Tab from '$lib/Tab.svelte';
 	import Button from './Button.svelte';
 
-    import { config, input } from '../stores';
+    import { config, input, currentIndex } from '../stores';
+    import { handleLoad, clear, saveToFile } from '../utils/storage'
+	import { getTypeName } from '../utils/helpers';
+
+    let hiddenFilePicker: HTMLInputElement | undefined;
+
+    const handleInput = () => {
+        hiddenFilePicker?.click();
+    };
 </script>
 
 <div class="container">
 	<div class="top">
         <h3>RESQUE</h3>
         <div>
-            <Button action={() => alert("Oy!")}>Clear</Button>
-            <Button action={() => alert("Oy!")}>Load</Button>
-            <Button action={() => alert("Oy!")}>Save to file...</Button>
+            <Button action={() => clear()}>Clear</Button>
+            <Button action={() => hiddenFilePicker?.click()}>Load</Button>
+            <Button action={() => saveToFile()}>Save to file...</Button>
         </div>
     </div>
     <p>{$input.length} of {$config.max} slots used</p>
-	<Tab type="pub" title="x" />
+
+	{#each $input as tab, index}
+        <Tab
+            type={tab.type} 
+            title={tab.title}
+            index={index}
+            selected={index === $currentIndex}
+        />        
+    {/each}
+
+    {#if $input.length < $config.max}
+        {#each ['pub', 'software', 'data'] as type}
+            <Button
+                action={() => {
+                    input.update(input => {
+                        input.push({ type });
+                        return input;
+                    });
+                }}
+            >Add {getTypeName(type)}</Button>
+        {/each}
+    {/if}
 </div>
+
+<input
+    type="file"
+    style="display: none ;"
+    bind:this={hiddenFilePicker}
+    on:input={async () => {
+        handleLoad(await JSON.parse(this.files[0].text()));
+    }}
+/>
 
 <style>
     .container {
