@@ -1,5 +1,6 @@
 <script>
-    import { input } from '../stores';
+	import InfoBox from "./InfoBox.svelte";
+
 </script>
 
-<div><b>{$input[0].text}</b></div>
+<InfoBox />
