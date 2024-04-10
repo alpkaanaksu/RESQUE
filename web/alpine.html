@@ -68,6 +68,7 @@
                 let condition = foundCondition.trim();
 
                 if (condition.startsWith(':')) {
+                    console.error('Condition starts with \':\' but no indicator ID is provided. The condition was: ', condition);
                     condition = `$${indicatorId} =|= [${condition.replace(':', '')}]`
                 }
 
@@ -135,6 +136,8 @@
         }
 
         const preprocessText = text => text ? insertValuesIntoText(partialHighlight(null, text)) : '';
+
+        const preprocessTextWithIndicatorContext = (indicatorID, text) => text ? insertValuesIntoText(partialHighlight(indicatorID, text)) : '';
 
         const fetchInformationUsingDOI = async (doi) => {
             return await fetch("https://doi.org/" + doi, {
@@ -300,7 +303,7 @@
             <div class="tabs-container">
                 <template x-for="tab, index in $store.data.input" :key="index">
                     <div @click="$store.data.currentTab = index" x-html="`<b>${types[tab.type]}</b><br>${$store.data.input[index].Title ?? ''}`"
-                        x-bind:class="{tab: true, active: $store.data.currentTab === index}"></div>
+                        :class="{tab: true, active: $store.data.currentTab === index}"></div>
                 </template>
             </div>
             <div id="add-container">
@@ -340,39 +343,39 @@
 
                         <template x-if="elem.type === 'text'">
                             <input x-model="$store.data.currentInput[elem.id]" type="text"
-                                x-bind:placeholder="elem.title || ''" />
+                                :placeholder="elem.title || ''" />
                         </template>
 
                         <template x-if="elem.type === 'textbox'">
                             <div class="textbox" contenteditable x-model="$store.data.currentInput[elem.id]"
-                                x-bind:placeholder="elem.title || ''"></div>
+                                :placeholder="elem.title || ''"></div>
                         </template>
 
                         <template x-if="elem.type === 'number'">
                             <input x-model="$store.data.currentInput[elem.id]" type="text"
-                                x-bind:placeholder="elem.title || ''" />
+                                :placeholder="elem.title || ''" />
                         </template>
 
                         <template x-if="elem.type === 'date'">
                             <input x-model="$store.data.currentInput[elem.id]" type="date"
-                                x-bind:placeholder="elem.title || ''" />
+                                :placeholder="elem.title || ''" />
                         </template>
 
                         <template x-if="elem.type === 'dropdown'">
                             <select x-model="$store.data.currentInput[elem.id]">
                                 <template x-for="option in elem.options" :key="option.id">
                                     <p x-text="option.text"></p>
-                                    <option x-html="option.text" x-bind:value="option.id"></option>
+                                    <option x-html="option.text" :value="option.id"></option>
                                 </template>
                             </select>
                         </template>
 
                         <template x-if="elem.type === 'radio'">
-                            <div x-bind:class="elem.alignment ? 'alignment-' + elem.alignment : 'alignment-vertical'">
+                            <div :class="elem.alignment ? 'alignment-' + elem.alignment : 'alignment-vertical'">
                                 <template x-for="option in elem.options" :key="option.id">
-                                    <label x-bind:for="elem.id + '_' + option.id">
+                                    <label :for="elem.id + '_' + option.id">
                                         <input x-model="$store.data.currentInput[elem.id]" type="radio"
-                                            x-bind:id="elem.id + '_' + option.id" x-bind:value="option.id" />
+                                            :id="elem.id + '_' + option.id" :value="option.id" />
                                         <span x-html="option.text"></span>
                                     </label>
                                 </template>
@@ -381,9 +384,9 @@
 
                         <template x-if="elem.type === 'checkbox'">
                             <template x-for="option in elem.options" :key="option.id">
-                                <label x-bind:for="elem.id + '_' + option.id">
+                                <label :for="elem.id + '_' + option.id">
                                     <input x-model="$store.data.currentInput[elem.id + '_' + option.id]" type="checkbox"
-                                        x-bind:id="elem.id + '_' + option.id" />
+                                        :id="elem.id + '_' + option.id" />
                                     <span x-html="option.text"></span>
                                 </label>
                             </template>
@@ -393,8 +396,7 @@
             </div>
         </div>
         <div id="menu">
-            <p x-text="$store.selectedIndicator.id"></p>
-            <div class="card animate pop" id="score-box">
+            <div class="card animate pop" id="score-box" x-show="$store.data.currentInput.type !== 'meta'">
                 <div id="score-container">
                     <div id="current-score">
                         <span class="sub">Rigor Score of selected research output</span>
@@ -428,25 +430,29 @@
 
                 <template x-if="$store.selectedIndicator.id">
                     <div>
-                        <template x-if="$store.selectedIndicator.info || $store.selectedIndicator.background || $store.selectedIndicator.tip_external">
-                            <div>
-                                <p style="margin: 0;">
-                                    <b><span x-text="$store.selectedIndicator.id"></span></b>
-                                    <br><br>
-                                    <span x-html="preprocessText($store.selectedIndicator.info)"></span>
-                                </p>
-                                <details id="item-background-details">
-                                    <summary>Background information</summary>
-                                    <span id="item-background"> HI :)</span>
-                                </details>
-                                <details id="tip-external-details">
-                                    <summary>Tips for external raters</summary>
-                                    <span id="tip-external" x-html="$store.selectedIndicator.tip_external ?? ''"></span>
-                                </details>
-                            </div>
+                        <p style="margin: 0;">
+                            <b><span x-text="$store.selectedIndicator.id"></span></b>
+                            <template x-if="$store.selectedIndicator.info">
+                                <div>
+                                    <br>
+                                    <span x-html="preprocessTextWithIndicatorContext($store.selectedIndicator.id, $store.selectedIndicator.info)"></span>
+                                </div>
+                            </template>
+                            <template x-if="!$store.selectedIndicator.info">
+                                <p style="color: gray; margin: 0;"><br><i>No information.</i></p>
+                            </template>
+                        </p>
+                        <template x-if="$store.selectedIndicator.background">
+                            <details id="item-background-details">
+                                <summary>Background information</summary>
+                                <span id="item-background" x-html="preprocessText($store.selectedIndicator.background)"></span>
+                            </details>
                         </template>
-                        <template x-if="!($store.selectedIndicator.info || $store.selectedIndicator.background || $store.selectedIndicator.tip_external)">
-                            <span><i>No information.</i></span>
+                        <template x-if="$store.selectedIndicator.tip_external">
+                            <details id="tip-external-details" :open="$store.data.input[0].RaterType === 'External'">
+                                <summary>Tips for external raters</summary>
+                                <span id="tip-external" x-html="preprocessText($store.selectedIndicator.tip_external)"></span>
+                            </details>
                         </template>
                     </div>
                 </template>
